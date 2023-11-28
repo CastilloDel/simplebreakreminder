@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.simplebreakreminder" path="/org/gnome/shell/extensions/simplebreakreminder/">
+    <key name="time" type="u">
+      <default>20</default>
+    </key>
+  </schema>
+</schemalist>
+

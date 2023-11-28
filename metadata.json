@@ -1,0 +1,8 @@
+{
+  "shell-version": ["45"],
+  "uuid": "simplebreakreminder@castillodel.com",
+  "name": "Simple Break Reminder",
+  "description": "It's important to remember to take a break",
+  "url": "https://github.com/CastilloDel/simplebreakreminder",
+  "settings-schema": "org.gnome.shell.extensions.simplebreakreminder"
+}
