@@ -19,16 +19,23 @@ export default class ExamplePreferences extends ExtensionPreferences {
         });
         page.add(group);
 
-        // Create a new preferences row
-        const row = Adw.SpinRow.new_with_range(0, 1440, 1);
-        row.title = 'Time';
-        row.subtitle = 'How often to notify you for a break (in minutes)';
-        group.add(row);
+        const row1 = Adw.SpinRow.new_with_range(1, 1440, 1);
+        row1.title = 'Time between breaks';
+        row1.subtitle = 'How often to notify you for a break (in minutes)';
+        group.add(row1);
 
-        // Create a settings object and bind the row to the `time` key
+        const row2 = Adw.SpinRow.new_with_range(1, 1440, 1);
+        row2.title = 'Time to add when postponing';
+        row2.subtitle = 'How much time to wait after postponing the notification (in minutes)';
+        group.add(row2);
+
         window._settings = this.getSettings();
-        window._settings.bind('time', row, 'value',
-            Gio.SettingsBindFlags.DEFAULT);
+        window._settings.bind(
+            'time-between-breaks', row1, 'value', Gio.SettingsBindFlags.DEFAULT
+        );
+        window._settings.bind(
+            'extra-time', row2, 'value', Gio.SettingsBindFlags.DEFAULT
+        );
     }
 }
 

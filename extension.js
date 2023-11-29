@@ -4,8 +4,11 @@ import GLib from 'gi://GLib';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
+const REPAINT_SECONDS = 2;
+const CHECK_TIMER_SECONDS = 15;
 
 const repaint = (area, percentageDone) => {
     let context = area.get_context();
@@ -38,52 +41,81 @@ export default class SimpleBreakReminder extends Extension {
 
          // Add a menu item to open the preferences window
         this._indicator.menu.addAction('Preferences', () => this.openPreferences());
-        this._indicator.menu.addAction('Reset Timer', () => this.resetTimer());
+        this._indicator.menu.addAction('Reset Timer', () => {
+            this.addNewTimer(this._settings.get_uint('time-between-breaks'))
+        });
 
         this._settings = this.getSettings();
 
         // Watch for changes to a specific setting
-        this._settings.connect('changed::time', (settings, key) => {
-            this.resetTimer();
+        this._settings.connect('changed::time-between-breaks', (settings, key) => {
+            this.addNewTimer(this._settings.get_uint('time-between-breaks'));
         });
 
         // Add the indicator to the panel
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
-        this.resetTimer();
-        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 5, () => {
-            this.check();
+        this.addNewTimer(this._settings.get_uint('time-between-breaks'));
+        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REPAINT_SECONDS, () => {
             icon.queue_repaint();
+            return GLib.SOURCE_CONTINUE;
+        });
+        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, CHECK_TIMER_SECONDS, () => {
+            this.check();
             return GLib.SOURCE_CONTINUE;
         });
     }
 
     check() {
         const currentTime = new Date();
-        if (this._timeOutTime < currentTime) {
-            Main.notify('Break reminder', 'Take a break!');
-            this.resetTimer();
+        if (this._timerEnd < currentTime) {
+            console.log("Notification");
+            const source = new MessageTray.Source(
+                'Break',
+                'break-reminder'
+            );
+            Main.messageTray.add(source);
+
+            const notification = new MessageTray.Notification(
+                source,
+                'Break reminder',
+                'You should take a break!'
+            );
+            notification.addAction('I will!', () => {
+                console.log("Accept");
+                this.addNewTimer(this._settings.get_uint('time-between-breaks'));
+            });
+            notification.addAction('Wait a bit', () => {
+                console.log("Decline");
+                this.addNewTimer(this._settings.get_uint('extra-time'));
+            });
+
+            source.showNotification(notification);
         }
     }
 
-    resetTimer() {
-        const time = this._settings.get_uint('time');
-        this._timeOutTime = new Date();
+    addNewTimer(minutes) {
+        this._timerStart = new Date();
+        this._timerEnd = new Date();
         // SetMinutes manages the overflow 
-        this._timeOutTime.setMinutes(this._timeOutTime.getMinutes() + time);
+        this._timerEnd.setMinutes(this._timerStart.getMinutes() + minutes);
     }
 
     calculatePercentageDone() {
-        const remainingMinutes = (this._timeOutTime - new Date()) / 1000 / 60;
-        const time = this._settings.get_uint('time');
-        const remainingPercentage = remainingMinutes / time;
-        return 1 - remainingPercentage;
+        const time = new Date();
+        const done = (time - this._timerStart) /  (this._timerEnd - this._timerStart);
+        return Math.min(0.999, done);
     }
 
     disable() {
         this._indicator?.destroy();
         this._indicator = null;
+        this._settings?.destroy();
         this._settings = null;
+        this._timerStart?.destroy();
+        this._timerStart = null;
+        this._timerEnd?.destroy();
+        this._timerEnd = null;
     }
 }
 

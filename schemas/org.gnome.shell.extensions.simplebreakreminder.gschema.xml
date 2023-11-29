@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.simplebreakreminder" path="/org/gnome/shell/extensions/simplebreakreminder/">
-    <key name="time" type="u">
+    <key name="time-between-breaks" type="u">
       <default>20</default>
+    </key>
+    <key name="extra-time" type="u">
+      <default>5</default>
     </key>
   </schema>
 </schemalist>
