@@ -8,7 +8,7 @@ import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 const REPAINT_SECONDS = 2;
-const CHECK_TIMER_SECONDS = 15;
+const CHECK_TIMER_SECONDS = 10;
 
 const repaint = (area, percentageDone) => {
     let context = area.get_context();
@@ -72,7 +72,7 @@ export default class SimpleBreakReminder extends Extension {
             console.log("Notification");
             const source = new MessageTray.Source(
                 'Break',
-                'break-reminder'
+                'face-laugh-symbolic'
             );
             Main.messageTray.add(source);
 
@@ -89,6 +89,7 @@ export default class SimpleBreakReminder extends Extension {
                 console.log("Decline");
                 this.addNewTimer(this._settings.get_uint('extra-time'));
             });
+            notification.setTransient(true);
 
             source.showNotification(notification);
         }
