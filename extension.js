@@ -56,11 +56,11 @@ export default class SimpleBreakReminder extends Extension {
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
         this.addNewTimer(this._settings.get_uint('time-between-breaks'));
-        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REPAINT_SECONDS, () => {
+        this._repaintTimeOut = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REPAINT_SECONDS, () => {
             icon.queue_repaint();
             return GLib.SOURCE_CONTINUE;
         });
-        GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, CHECK_TIMER_SECONDS, () => {
+        this._checkTimeOut = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, CHECK_TIMER_SECONDS, () => {
             this.check();
             return GLib.SOURCE_CONTINUE;
         });
@@ -109,6 +109,14 @@ export default class SimpleBreakReminder extends Extension {
     }
 
     disable() {
+        if (this._repaintTimeOut) {
+            GLib.Source.remove(this._repaintTimeOut);
+            this._repaintTimeOut = null;
+        }
+        if (this._checkTimeOut) {
+            GLib.Source.remove(this._checkTimeOut);
+            this._checkTimeOut = null;
+        }
         this._indicator?.destroy();
         this._indicator = null;
         this._settings?.destroy();
