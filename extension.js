@@ -119,7 +119,6 @@ export default class SimpleBreakReminder extends Extension {
         }
         this._indicator?.destroy();
         this._indicator = null;
-        this._settings?.destroy();
         this._settings = null;
         this._timerStart?.destroy();
         this._timerStart = null;
