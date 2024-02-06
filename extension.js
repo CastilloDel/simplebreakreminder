@@ -55,6 +55,8 @@ export default class SimpleBreakReminder extends Extension {
         // Add the indicator to the panel
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
+        this._notified = false;
+
         this.addNewTimer(this._settings.get_uint('time-between-breaks'));
         this._repaintTimeOut = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REPAINT_SECONDS, () => {
             icon.queue_repaint();
@@ -68,7 +70,7 @@ export default class SimpleBreakReminder extends Extension {
 
     check() {
         const currentTime = new Date();
-        if (this._timerEnd < currentTime) {
+        if (this._timerEnd < currentTime && this._notified === false) {
             console.log("Notification");
             const source = new MessageTray.Source(
                 'Break',
@@ -81,17 +83,23 @@ export default class SimpleBreakReminder extends Extension {
                 'Break reminder',
                 'You should take a break!'
             );
-            notification.addAction('I will!', () => {
+            const accept = () => {
                 console.log("Accept");
                 this.addNewTimer(this._settings.get_uint('time-between-breaks'));
-            });
+                this._notified = false;
+            };            
+            notification.connect('activated', accept);
+            notification.addAction('I will!', accept);
             notification.addAction('Wait a bit', () => {
                 console.log("Decline");
                 this.addNewTimer(this._settings.get_uint('extra-time'));
+                this._notified = false;
             });
             notification.setTransient(true);
+            notification.setUrgency(MessageTray.Urgency.CRITICAL)
 
             source.showNotification(notification);
+            this._notified = true;
         }
     }
 
