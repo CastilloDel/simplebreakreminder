@@ -72,17 +72,18 @@ export default class SimpleBreakReminder extends Extension {
         const currentTime = new Date();
         if (this._timerEnd < currentTime && this._notified === false) {
             console.log("Notification");
-            const source = new MessageTray.Source(
-                'Break',
-                'face-laugh-symbolic'
-            );
+            const source = new MessageTray.Source({
+                title: 'Break',
+                icon_name: 'face-laugh-symbolic'
+            });
             Main.messageTray.add(source);
 
-            const notification = new MessageTray.Notification(
+            const notification = new MessageTray.Notification({
                 source,
-                'Break reminder',
-                'You should take a break!'
-            );
+                title: 'Break reminder',
+                body: 'You should take a break!',
+                urgency: MessageTray.Urgency.CRITICAL,
+            });
             const accept = () => {
                 console.log("Accept");
                 this.addNewTimer(this._settings.get_uint('time-between-breaks'));
@@ -95,10 +96,9 @@ export default class SimpleBreakReminder extends Extension {
                 this.addNewTimer(this._settings.get_uint('extra-time'));
                 this._notified = false;
             });
-            notification.setTransient(true);
-            notification.setUrgency(MessageTray.Urgency.CRITICAL)
+            // notification.urgency = MessageTray.Urgency.CRITICAL;
 
-            source.showNotification(notification);
+            source.addNotification(notification);
             this._notified = true;
         }
     }
