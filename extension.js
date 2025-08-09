@@ -66,9 +66,17 @@ export default class SimpleBreakReminder extends Extension {
             this.check();
             return GLib.SOURCE_CONTINUE;
         });
+
+        // Reset time after screen was locked
+        Main.screenShield.connect("unlocked", () => {
+            this.addNewTimer(this._settings.get_uint('time-between-breaks'));
+        });
     }
 
     check() {
+        if (Main.screenShield.locked) {
+           return; 
+        }
         const currentTime = new Date();
         if (this._timerEnd < currentTime && this._notified === false) {
             console.log("Notification");
