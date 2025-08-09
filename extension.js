@@ -68,7 +68,7 @@ export default class SimpleBreakReminder extends Extension {
         });
 
         // Reset time after screen was locked
-        Main.screenShield.connect("unlocked", () => {
+        this._screenLockConnection = Main.screenShield.connect("unlocked", () => {
             this.addNewTimer(this._settings.get_uint('time-between-breaks'));
         });
     }
@@ -133,6 +133,10 @@ export default class SimpleBreakReminder extends Extension {
         if (this._checkTimeOut) {
             GLib.Source.remove(this._checkTimeOut);
             this._checkTimeOut = null;
+        }
+        if (this._screenLockConnection) {
+            Main.screenShield.disconnect(this._screenLockConnection);
+            this._screenLockConnection = null;
         }
         this._indicator?.destroy();
         this._indicator = null;
