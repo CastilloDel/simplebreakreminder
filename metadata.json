@@ -1,5 +1,5 @@
 {
-  "shell-version": ["45", "46", "47"],
+  "shell-version": ["45", "46", "47", "48"],
   "uuid": "simplebreakreminder@castillodel.com",
   "name": "Simple Break Reminder",
   "description": "It's important to remember to take a break",
