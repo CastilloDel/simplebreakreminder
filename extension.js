@@ -97,14 +97,14 @@ export default class SimpleBreakReminder extends Extension {
                 this.addNewTimer(this._settings.get_uint('time-between-breaks'));
                 this._notified = false;
             };            
-            notification.connect('activated', accept);
-            notification.addAction('I will!', accept);
-            notification.addAction('Wait a bit', () => {
+            const postpone =  () => {
                 console.log("Decline");
                 this.addNewTimer(this._settings.get_uint('extra-time'));
                 this._notified = false;
-            });
-            // notification.urgency = MessageTray.Urgency.CRITICAL;
+            }
+            notification.connect('activated', postpone);
+            notification.addAction('I will!', accept);
+            notification.addAction('Wait a bit', postpone);
 
             source.addNotification(notification);
             this._notified = true;
