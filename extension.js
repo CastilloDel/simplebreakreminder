@@ -105,6 +105,7 @@ export default class SimpleBreakReminder extends Extension {
             notification.connect('activated', postpone);
             notification.addAction('I will!', accept);
             notification.addAction('Wait a bit', postpone);
+            notification.connect('destroy', postpone);
 
             source.addNotification(notification);
             this._notified = true;
