@@ -8,7 +8,7 @@ import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 const REPAINT_SECONDS = 2;
-const CHECK_TIMER_SECONDS = 10;
+const CHECK_TIMER_SECONDS = 5;
 
 const repaint = (area, percentageDone) => {
     let context = area.get_context();
@@ -40,24 +40,20 @@ export default class SimpleBreakReminder extends Extension {
         this._indicator.add_child(icon);
 
          // Add a menu item to open the preferences window
-        this._indicator.menu.addAction('Preferences', () => this.openPreferences());
-        this._indicator.menu.addAction('Reset Timer', () => {
-            this.addNewTimer(this._settings.get_uint('time-between-breaks'))
-        });
+        this._indicator.menu.addAction('Preferences', this.openPreferences.bind(this));
+        this._indicator.menu.addAction('Reset Timer', this.resetTimer.bind(this));
 
         this._settings = this.getSettings();
 
         // Watch for changes to a specific setting
-        this._settings.connect('changed::time-between-breaks', (settings, key) => {
-            this.addNewTimer(this._settings.get_uint('time-between-breaks'));
-        });
+        this._settings.connect('changed::time-between-breaks', this.resetTimer.bind(this));
 
         // Add the indicator to the panel
         Main.panel.addToStatusArea(this.uuid, this._indicator);
 
-        this._notified = false;
+        this._notification_alive = false;
 
-        this.addNewTimer(this._settings.get_uint('time-between-breaks'));
+        this.resetTimer(this._settings.get_uint('time-between-breaks'));
         this._repaintTimeOut = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REPAINT_SECONDS, () => {
             icon.queue_repaint();
             return GLib.SOURCE_CONTINUE;
@@ -68,9 +64,7 @@ export default class SimpleBreakReminder extends Extension {
         });
 
         // Reset time after screen was locked
-        this._screenLockConnection = Main.screenShield.connect("unlocked", () => {
-            this.addNewTimer(this._settings.get_uint('time-between-breaks'));
-        });
+        this._screenLockConnection = Main.screenShield.connect("unlocked", this.resetTimer);
     }
 
     check() {
@@ -78,41 +72,50 @@ export default class SimpleBreakReminder extends Extension {
            return; 
         }
         const currentTime = new Date();
-        if (this._timerEnd < currentTime && this._notified === false) {
-            console.log("Notification");
+        if (this._timerEnd < currentTime && this._notification_alive === false) {
+            console.log("Notifying the user");
             const source = new MessageTray.Source({
                 title: 'Break',
                 icon_name: 'face-laugh-symbolic'
             });
             Main.messageTray.add(source);
 
-            const notification = new MessageTray.Notification({
+            this._notification = new MessageTray.Notification({
                 source,
                 title: 'Break reminder',
                 body: 'You should take a break!',
                 urgency: MessageTray.Urgency.CRITICAL,
             });
             const accept = () => {
-                console.log("Accept");
-                this.addNewTimer(this._settings.get_uint('time-between-breaks'));
-                this._notified = false;
+                console.log("Notification was accepted");
+                this._notification_alive = false;
+                this.resetTimer(this._settings.get_uint('time-between-breaks'));
             };            
             const postpone =  () => {
-                console.log("Decline");
-                this.addNewTimer(this._settings.get_uint('extra-time'));
-                this._notified = false;
+                console.log("Notification was declined");
+                this._notification_alive = false;
+                this.resetTimer(this._settings.get_uint('extra-time'));
             }
-            notification.connect('activated', postpone);
-            notification.addAction('I will!', accept);
-            notification.addAction('Wait a bit', postpone);
-            notification.connect('destroy', postpone);
+            this._notification.connect('activated', postpone);
+            this._notification.addAction('I will!', accept);
+            this._notification.addAction('Wait a bit', postpone);
+            this._notification.connect('destroy', () => {
+                if (this._notification_alive === true) {
+                    postpone();
+                }
+            });
 
-            source.addNotification(notification);
-            this._notified = true;
+
+            this._notification_alive = true;
+            source.addNotification(this._notification);
         }
     }
 
-    addNewTimer(minutes) {
+    resetTimer(minutes) {
+        if (this._notification_alive === true) {
+            this._notification_alive = false;
+            this._notification.destroy();
+        }
         this._timerStart = new Date();
         this._timerEnd = new Date();
         // SetMinutes manages the overflow 
