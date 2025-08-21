@@ -1,5 +1,4 @@
 import St from 'gi://St';
-import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -41,12 +40,16 @@ export default class SimpleBreakReminder extends Extension {
 
          // Add a menu item to open the preferences window
         this._indicator.menu.addAction('Preferences', this.openPreferences.bind(this));
-        this._indicator.menu.addAction('Reset Timer', this.resetTimer.bind(this));
+        this._indicator.menu.addAction('Reset Timer', () => {
+            this.resetTimer(this._settings.get_uint('time-between-breaks'));
+        });
 
         this._settings = this.getSettings();
 
         // Watch for changes to a specific setting
-        this._settings.connect('changed::time-between-breaks', this.resetTimer.bind(this));
+        this._settings.connect('changed::time-between-breaks', () => {
+            this.resetTimer(this._settings.get_uint('time-between-breaks'));
+        });
 
         // Add the indicator to the panel
         Main.panel.addToStatusArea(this.uuid, this._indicator);
@@ -64,7 +67,9 @@ export default class SimpleBreakReminder extends Extension {
         });
 
         // Reset time after screen was locked
-        this._screenLockConnection = Main.screenShield.connect("unlocked", this.resetTimer);
+        this._screenLockConnection = Main.screenShield.connect("unlocked", () => {
+            this.resetTimer(this._settings.get_uint('time-between-breaks'));
+        });
     }
 
     check() {
