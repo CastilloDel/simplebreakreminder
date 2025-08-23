@@ -146,6 +146,10 @@ export default class SimpleBreakReminder extends Extension {
             Main.screenShield.disconnect(this._screenLockConnection);
             this._screenLockConnection = null;
         }
+        if (this._notification_alive === true) {
+            this._notification_alive = false;
+            this._notification.destroy();
+        }
         this._indicator?.destroy();
         this._indicator = null;
         this._settings = null;
