@@ -9,20 +9,27 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 const REPAINT_SECONDS = 2;
 const CHECK_TIMER_SECONDS = 5;
 
+const GRAY = [148 / 255, 148 / 255, 148 / 255]
+const WHITE = [242 / 255, 242 / 255, 242 / 255]
+
+// Expressed as a percentage of the available space
+const ICON_SIZE = 0.5
+
 const repaint = (area, percentageDone) => {
     let context = area.get_context();
     const [width, height] = area.get_surface_size();
-    const x =  width / 2;
-    const y = height / 2;
-    const r = width / 2.5;
-    context.arc(x, y, r, 0, 2 * Math.PI);
-    context.setSourceRGBA(148 / 255, 148 / 255, 148 / 255, 1);
+    const centerX =  width / 2;
+    const centerY = height / 2;
+    const radius = (width / 2.0) * ICON_SIZE;
+    context.setLineWidth(2.1); 
+    context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    context.setSourceRGB(...GRAY);
     context.stroke();
     const angleDone = 2 * Math.PI * percentageDone;
     const startPoint = 1.5 * Math.PI;
     const endPoint = (1.5 * Math.PI + angleDone) % (2 * Math.PI);
-    context.arc(x, y, r, startPoint, endPoint);
-    context.setSourceRGBA(242 / 255, 242 / 255, 242 / 255, 1);
+    context.arc(centerX, centerY, radius, startPoint, endPoint);
+    context.setSourceRGB(...WHITE);
     context.stroke();
 
     context.$dispose();
