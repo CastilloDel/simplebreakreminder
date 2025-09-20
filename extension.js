@@ -13,11 +13,12 @@ const GRAY = [148 / 255, 148 / 255, 148 / 255]
 const WHITE = [242 / 255, 242 / 255, 242 / 255]
 const WEAK_YELLOW = [159 / 255, 145 / 255, 34 / 255]
 const STRONG_YELLOW = [242 / 255, 242 / 255, 53 / 255]
+const RED = [242 / 255, 0 / 255, 0 / 255]
 
 // Expressed as a percentage of the available space
 const ICON_SIZE = 0.5
 
-const repaint = (area, percentageDone, paint_yellow) => {
+const repaint = (area, percentageDone, paint_red, paint_yellow) => {
     let context = area.get_context();
     const [width, height] = area.get_surface_size();
     const centerX =  width / 2;
@@ -25,7 +26,9 @@ const repaint = (area, percentageDone, paint_yellow) => {
     const radius = (width / 2.0) * ICON_SIZE;
     context.setLineWidth(2.1); 
     context.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    if (paint_yellow) {
+    if (paint_red) {
+        context.setSourceRGB(...RED);
+    } else if (paint_yellow) {
         context.setSourceRGB(...WEAK_YELLOW);
     } else {
         context.setSourceRGB(...GRAY);
@@ -35,7 +38,9 @@ const repaint = (area, percentageDone, paint_yellow) => {
     const startPoint = 1.5 * Math.PI;
     const endPoint = (1.5 * Math.PI + angleDone) % (2 * Math.PI);
     context.arc(centerX, centerY, radius, startPoint, endPoint);
-    if (paint_yellow) {
+    if (paint_red) {
+        context.setSourceRGB(...RED);
+    } else if (paint_yellow) {
         context.setSourceRGB(...STRONG_YELLOW);
     } else {
         context.setSourceRGB(...WHITE);
@@ -50,24 +55,33 @@ export default class SimpleBreakReminder extends Extension {
         // Create a panel button
         this._indicator = new PanelMenu.Button(0.0, this.metadata.name, false);
         this._in_extension = false;
+        this._active = true;
 
         // Add an icon
         const icon = new St.DrawingArea({ width: 25, height: 25 });
-        icon.connect('repaint', (area) => repaint(area, this.calculatePercentageDone(), this._in_extension));
+        icon.connect(
+            'repaint',
+            (area) => repaint(area, this.calculatePercentageDone(), !this._active, this._in_extension)
+        );
         this._indicator.add_child(icon);
 
          // Add a menu item to open the preferences window
         this._indicator.menu.addAction('Preferences', this.openPreferences.bind(this));
-        this._indicator.menu.addAction('Reset Timer', () => {
-            this._in_extension = true;
+        this._indicator.menu.addAction('Reset timer', () => {
+            this._in_extension = false;
             this.resetTimer(this._settings.get_uint('time-between-breaks'));
+        });
+        this._indicator.menu.addAction('Stop/Continue timer', () => {
+            // We reset the timer, which also cleans up the notifications if needed
+            this.resetTimer(this._settings.get_uint('time-between-breaks'));
+            this._active = !this._active;
         });
 
         this._settings = this.getSettings();
 
         // Watch for changes to a specific setting
         this._settings.connect('changed::time-between-breaks', () => {
-            this._in_extension = true;
+            this._in_extension = false;
             this.resetTimer(this._settings.get_uint('time-between-breaks'));
         });
 
@@ -88,17 +102,14 @@ export default class SimpleBreakReminder extends Extension {
 
         // Reset time after screen was locked
         this._screenLockConnection = Main.screenShield.connect("unlocked", () => {
-            this._in_extension = true;
+            this._in_extension = false;
             this.resetTimer(this._settings.get_uint('time-between-breaks'));
         });
     }
 
     check() {
-        if (Main.screenShield.locked) {
-           return; 
-        }
         const currentTime = new Date();
-        if (this._timerEnd < currentTime && this._notification_alive === false) {
+        if (this._active && this._timerEnd < currentTime && this._notification_alive === false) {
             console.log("Notifying the user");
             const source = new MessageTray.Source({
                 title: 'Break',
@@ -114,8 +125,8 @@ export default class SimpleBreakReminder extends Extension {
             });
             const accept = () => {
                 console.log("Notification was accepted");
-                this._notification_alive = false;
                 this._in_extension = false;
+                this._notification_alive = false;
                 this.resetTimer(this._settings.get_uint('time-between-breaks'));
             };            
             const postpone =  () => {
