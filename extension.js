@@ -16,7 +16,7 @@ const STRONG_YELLOW = [242 / 255, 242 / 255, 53 / 255]
 const RED = [242 / 255, 0 / 255, 0 / 255]
 
 // Expressed as a percentage of the available space
-const ICON_SIZE = 0.5
+const ICON_SIZE = 0.65
 
 const repaint = (area, percentageDone, paint_red, paint_yellow) => {
     let context = area.get_context();
